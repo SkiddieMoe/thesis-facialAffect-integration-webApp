@@ -7,11 +7,17 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 WORKDIR /app
 COPY requirements.txt .
 
-# CUDA-matched PyTorch build (cu121), compatible with Cloud Run's L4 GPU
-# driver (CUDA 12.2) via backward compatibility. Runs fine CPU-only too if
-# deployed without --gpu, just without acceleration — no downside either way.
-RUN pip install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cu121
+# Install requirements first (libreface pulls in its own torch==2.0.0 pin
+# here — that's expected and fine, it gets overwritten next).
 RUN pip install --no-cache-dir -r requirements.txt
+
+# THEN force the CUDA-matched build back in, --no-deps so pip doesn't try
+# to "fix" libreface's pin again. Order matters: doing this before
+# requirements.txt gets silently undone by libreface's pin winning the
+# dependency resolution — that's exactly what happened in the first deploy.
+# Compatible with Cloud Run's L4 GPU driver (CUDA 12.2) via backward
+# compatibility; runs fine CPU-only too if deployed without --gpu.
+RUN pip install --no-cache-dir --force-reinstall --no-deps torch --index-url https://download.pytorch.org/whl/cu121
 
 COPY . .
 
