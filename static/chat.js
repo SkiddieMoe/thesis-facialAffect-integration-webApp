@@ -36,14 +36,22 @@
   });
 
   async function startWebcam() {
+    const deviceId = CameraStore.get();
+    const constraints = deviceId ? { video: { deviceId: { exact: deviceId } } } : { video: true };
     try {
-      stream = await navigator.mediaDevices.getUserMedia({ video: true });
-      video.srcObject = stream;
-      analysisLoop();
+      stream = await navigator.mediaDevices.getUserMedia(constraints);
     } catch {
-      webcamOn = false;
-      document.getElementById("webcamToggle").checked = false;
+      // Selected device may be unplugged/unavailable — fall back to default
+      // rather than failing outright.
+      try { stream = await navigator.mediaDevices.getUserMedia({ video: true }); }
+      catch {
+        webcamOn = false;
+        document.getElementById("webcamToggle").checked = false;
+        return;
+      }
     }
+    video.srcObject = stream;
+    analysisLoop();
   }
   function stopWebcam() {
     if (stream) stream.getTracks().forEach((t) => t.stop());
@@ -117,6 +125,10 @@
     };
     recorder.start();
     micBtn.textContent = "⏹";
+  });
+
+  document.addEventListener("cameraChanged", () => {
+    if (webcamOn) { stopWebcam(); startWebcam(); }
   });
 
   window.addEventListener("beforeunload", stopWebcam);
