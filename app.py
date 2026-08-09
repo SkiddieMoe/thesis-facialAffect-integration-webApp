@@ -11,6 +11,12 @@ import libreface
 import gcs_storage as store
 
 app = Flask(__name__)
+# Static files (JS/CSS) never get cached by the browser — this is a small,
+# actively-developed app where picking up every redeploy immediately matters
+# far more than shaving a few ms off repeat static-file requests. Without
+# this, a browser can keep serving a stale, previously-broken core.js after
+# a fix has already been deployed, looking exactly like the fix didn't work.
+app.config["SEND_FILE_MAX_AGE_DEFAULT"] = 0
 app.secret_key = os.environ.get("FLASK_SECRET_KEY") or secrets.token_hex(32)
 app.config.update(SESSION_COOKIE_SAMESITE="Lax", SESSION_COOKIE_HTTPONLY=True)
 
@@ -105,53 +111,14 @@ def default_keys_status():
     return jsonify(out)
 
 
-@app.route("/api/admin/default-keys", methods=["GET"])
-@require_admin
-def admin_list_default_keys():
-    out = {}
-    for service in ("openai", "deepseek"):
-        files = store.list_key_files(service)
-        out[service] = {
-            "files": [{"filename": fn, **{k: v for k, v in (store.get_key_lines(fn) or {}).items() if k != "key"}}
-                      for fn in files],
-            "active": store.get_active_key_filename(service),
-        }
-    return jsonify(out)
-
-
-@app.route("/api/admin/default-keys", methods=["POST"])
-@require_admin
-def admin_save_default_key():
-    data = request.get_json(force=True) or {}
-    service = data.get("service")
-    filename = os.path.basename((data.get("filename") or "").strip())
-    key = (data.get("key") or "").strip()
-    model = (data.get("model") or "").strip()
-    base_url = (data.get("base_url") or "").strip()
-
-    if service not in ("openai", "deepseek") or not filename or not key:
-        return jsonify({"error": "service, filename, and key are required."}), 400
-    if not filename.lower().endswith(".txt"):
-        filename += ".txt"
-    if not model:
-        model = store.DEFAULT_OPENAI_MODEL if service == "openai" else store.DEFAULT_DEEPSEEK_MODEL
-    if not base_url and service == "deepseek":
-        base_url = store.DEFAULT_DEEPSEEK_BASE_URL
-
-    store.save_key_file(filename, service, key, model, base_url)
-    store.set_active_key_filename(service, filename)
-    return jsonify({"saved": filename})
-
-
-@app.route("/api/admin/default-keys/activate", methods=["POST"])
-@require_admin
-def admin_activate_default_key():
-    data = request.get_json(force=True) or {}
-    service, filename = data.get("service"), data.get("filename")
-    if service not in ("openai", "deepseek") or not filename:
-        return jsonify({"error": "Invalid service or filename."}), 400
-    store.set_active_key_filename(service, filename)
-    return jsonify({"active": filename})
+# NOTE: default keys are now configured only via env vars
+# (DEFAULT_OPENAI_API_KEY / DEFAULT_DEEPSEEK_API_KEY, see _default_client
+# below) — the admin UI/routes for adding or switching default keys through
+# the browser were removed entirely, not just hidden, since a reachable
+# PIN-gated endpoint is still real attack surface even when no button links
+# to it. gcs_storage.py's key-writing functions are now unused but left in
+# place; get_active_default() is still checked (and still wins over the env
+# vars) purely as a read path, in case a key was configured there previously.
 
 
 # ── Admin's own persistent filter (tied to PIN session, not a browser) ─────
