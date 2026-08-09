@@ -6,6 +6,12 @@
   const video = document.createElement("video");
   video.autoplay = true; video.muted = true; video.playsInline = true;
 
+  const emotionReadout = document.getElementById("chatEmotionReadout");
+  function setCurrentEmotion(e) {
+    currentEmotion = e;
+    if (emotionReadout) emotionReadout.textContent = `Detected: ${e}`;
+  }
+
   const chatHistory = [], controlHistory = [];
   const logBox = document.getElementById("chatLog");
 
@@ -63,12 +69,12 @@
     clearInterval(analysisTimer);
     analysisTimer = setInterval(async () => {
       if (!webcamOn || !stream) return;
-      currentEmotion = await EmotionAnalysis.analyzeFrame(video);
+      setCurrentEmotion(await EmotionAnalysis.analyzeFrame(video));
     }, 1500);
   }
   document.getElementById("webcamToggle").addEventListener("change", (e) => {
     webcamOn = e.target.checked;
-    if (webcamOn) startWebcam(); else { stopWebcam(); currentEmotion = "neutral"; }
+    if (webcamOn) startWebcam(); else { stopWebcam(); setCurrentEmotion("neutral"); }
   });
   startWebcam();
 
@@ -80,7 +86,7 @@
     window.ALL_EMOTIONS.forEach((e) => {
       const btn = document.createElement("button");
       btn.className = "btn"; btn.textContent = e[0].toUpperCase() + e.slice(1);
-      btn.addEventListener("click", () => { currentEmotion = e; });
+      btn.addEventListener("click", () => setCurrentEmotion(e));
       btnRow.appendChild(btn);
     });
   }
