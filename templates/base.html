@@ -29,6 +29,10 @@
   <p class="hint">Listener Mode auto-stops a recording when one of these is detected.</p>
   <div class="checkbox-grid" id="drawerFilterGrid"></div>
 
+  <h3>Camera</h3>
+  <p class="hint">Applies on every page. Names appear after you've granted camera access once.</p>
+  <select id="drawerCameraSelect" style="width:100%;padding:6px 8px;border:1px solid var(--border);border-radius:6px;font-size:13px"></select>
+
   <h3>My personal keys</h3>
   <p class="hint">Stored only in this browser. Calls go directly from your browser to the provider — never through this server.</p>
   {% for svc in ["openai", "deepseek"] %}

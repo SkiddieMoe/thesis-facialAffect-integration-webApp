@@ -69,6 +69,21 @@ const KeyManager = {
   clear(service) { localStorage.removeItem(this._key(service)); },
 };
 
+// ── Selected camera device — persists across every page (Chat + Listener) ──
+const CameraStore = {
+  KEY: "aibuddy.cameraDeviceId",
+  get() { return localStorage.getItem(this.KEY) || null; }, // null = system default
+  set(deviceId) {
+    if (deviceId) localStorage.setItem(this.KEY, deviceId);
+    else localStorage.removeItem(this.KEY);
+  },
+  async listVideoInputs() {
+    try {
+      return (await navigator.mediaDevices.enumerateDevices()).filter((d) => d.kind === "videoinput");
+    } catch { return []; }
+  },
+};
+
 // ── Emotion filter — local for everyone; ALSO synced server-side for the
 // admin (PIN-authenticated), so it survives beyond any one browser. ──
 const FilterStore = {
@@ -245,6 +260,28 @@ function initSettingsDrawer() {
   });
 }
 
+async function populateCameraSelect(selectEl) {
+  const devices = await CameraStore.listVideoInputs();
+  const current = CameraStore.get();
+  selectEl.innerHTML = `<option value="">System default</option>`;
+  const hasLabels = devices.some((d) => d.label);
+  devices.forEach((d, i) => {
+    const opt = document.createElement("option");
+    opt.value = d.deviceId;
+    opt.textContent = d.label || `Camera ${i + 1}`;
+    if (d.deviceId === current) opt.selected = true;
+    selectEl.appendChild(opt);
+  });
+  if (!hasLabels && devices.length) {
+    const hint = selectEl.parentElement?.querySelector(".hint");
+    if (hint) hint.textContent = "Camera names will appear after you grant camera access once — open Chat or Listener Mode first, then come back here.";
+  }
+  selectEl.addEventListener("change", () => {
+    CameraStore.set(selectEl.value || null);
+    document.dispatchEvent(new CustomEvent("cameraChanged"));
+  });
+}
+
 async function populateDrawer() {
   // Filter checkboxes
   const grid = document.getElementById("drawerFilterGrid");
@@ -261,6 +298,9 @@ async function populateDrawer() {
       document.dispatchEvent(new CustomEvent("filterChanged"));
     });
   });
+
+  // Camera selector — persists across every page via CameraStore
+  await populateCameraSelect(document.getElementById("drawerCameraSelect"));
 
   // Default status
   const status = await AI.defaultStatus();

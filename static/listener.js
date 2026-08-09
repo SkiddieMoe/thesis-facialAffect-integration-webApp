@@ -53,11 +53,20 @@
   async function startListening() {
     let devices = [];
     try { devices = (await navigator.mediaDevices.enumerateDevices()).filter((d) => d.kind === "videoinput"); } catch {}
-    const envDevice = devices.find((d) => /back|rear|environment/i.test(d.label));
+
+    const explicitDeviceId = CameraStore.get();
+    let videoConstraint;
+    if (explicitDeviceId) {
+      // Explicit choice from Settings takes priority over the automatic
+      // rear-camera guess below.
+      videoConstraint = { deviceId: { exact: explicitDeviceId } };
+    } else {
+      const envDevice = devices.find((d) => /back|rear|environment/i.test(d.label));
+      videoConstraint = envDevice ? { deviceId: { exact: envDevice.deviceId } } : { facingMode: "environment" };
+    }
+
     try {
-      stream = await navigator.mediaDevices.getUserMedia({
-        video: envDevice ? { deviceId: { exact: envDevice.deviceId } } : { facingMode: "environment" },
-      });
+      stream = await navigator.mediaDevices.getUserMedia({ video: videoConstraint });
     } catch {
       try { stream = await navigator.mediaDevices.getUserMedia({ video: true }); }
       catch { alert("Camera access is required for Listener Mode."); return; }
