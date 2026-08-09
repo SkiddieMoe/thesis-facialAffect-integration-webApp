@@ -351,45 +351,16 @@ async function populateDrawer() {
 
 async function renderAdminSection(container) {
   if (!window.DEBUG_MODE) {
-    container.innerHTML = `<div class="field disabled"><label>Edit default keys</label><input disabled placeholder="Locked"></div>`;
+    container.innerHTML = "";
     return;
   }
   const isAdmin = (await fetch("/api/admin/status").then(r => r.json())).admin;
   if (!isAdmin) {
-    container.innerHTML = `<button class="btn btn-block" id="unlockAdminBtn">🔒 Unlock admin editing</button>`;
+    container.innerHTML = `<button class="btn btn-block" id="unlockAdminBtn">🔒 Unlock admin (syncs your filter server-side)</button>`;
     container.querySelector("#unlockAdminBtn").addEventListener("click", () => openPinPrompt(() => renderAdminSection(container)));
     return;
   }
-  container.innerHTML = `
-    <fieldset>
-      <legend>Admin</legend>
-      <p class="hint" style="color:var(--ai)">Admin unlocked. Your filter now syncs to the server.</p>
-      <select id="adminSvc" style="width:100%;padding:6px;margin-bottom:6px">
-        <option value="openai">Audio Transcription (OpenAI-compatible)</option>
-        <option value="deepseek">Prompt Processing (DeepSeek-compatible)</option>
-      </select>
-      <div class="field"><label>File name</label><input id="adminFilename"></div>
-      <div class="field"><label>API key</label><input type="password" id="adminKey"></div>
-      <div class="field"><label>Model</label><input id="adminModel"></div>
-      <div class="field"><label>Base URL</label><input id="adminBaseUrl"></div>
-      <button class="btn btn-block" id="adminSaveBtn">Save & activate as default</button>
-      <p class="hint" id="adminStatus"></p>
-    </fieldset>
-  `;
-  container.querySelector("#adminSaveBtn").addEventListener("click", async () => {
-    const res = await fetch("/api/admin/default-keys", {
-      method: "POST", credentials: "include", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        service: container.querySelector("#adminSvc").value,
-        filename: container.querySelector("#adminFilename").value,
-        key: container.querySelector("#adminKey").value,
-        model: container.querySelector("#adminModel").value,
-        base_url: container.querySelector("#adminBaseUrl").value,
-      }),
-    });
-    const data = await res.json();
-    container.querySelector("#adminStatus").textContent = res.ok ? `Saved '${data.saved}'.` : (data.error || "Failed.");
-  });
+  container.innerHTML = `<p class="hint" style="color:var(--ai)">Admin unlocked. Your filter now syncs to the server.</p>`;
 }
 
 function openPinPrompt(onSuccess) {
