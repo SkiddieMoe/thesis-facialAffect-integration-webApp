@@ -11,6 +11,12 @@ import libreface
 import gcs_storage as store
 
 app = Flask(__name__)
+# Static files (JS/CSS) never get cached by the browser — this is a small,
+# actively-developed app where picking up every redeploy immediately matters
+# far more than shaving a few ms off repeat static-file requests. Without
+# this, a browser can keep serving a stale, previously-broken core.js after
+# a fix has already been deployed, looking exactly like the fix didn't work.
+app.config["SEND_FILE_MAX_AGE_DEFAULT"] = 0
 app.secret_key = os.environ.get("FLASK_SECRET_KEY") or secrets.token_hex(32)
 app.config.update(SESSION_COOKIE_SAMESITE="Lax", SESSION_COOKIE_HTTPONLY=True)
 
