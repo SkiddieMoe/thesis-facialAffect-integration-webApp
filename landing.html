@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}Affect Companion{% endblock %}
+{% block content %}
+<div class="hero">
+  <h1>Talk. React. Understand.</h1>
+  <p class="lead">An AI companion that reads facial expressions during conversation —
+  either yours while you chat, or a listener's while you speak to them.</p>
+  <div class="cta-row">
+    <a href="/listener" class="cta-card primary">
+      <span class="glyph">🎧</span>
+      <span class="title">Listener Mode</span>
+      <span class="desc">Point the camera at someone and speak — see how the AI reads their reaction.</span>
+    </a>
+    <a href="/chat" class="cta-card">
+      <span class="glyph">💬</span>
+      <span class="title">Chat</span>
+      <span class="desc">Talk with the AI directly, your own expression tagged along the way.</span>
+    </a>
+  </div>
+</div>
+{% endblock %}
