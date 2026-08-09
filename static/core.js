@@ -198,10 +198,15 @@ const AI = {
 
 // ── Emotion analysis ─────────────────────────────────────────────────────
 const EmotionAnalysis = {
+  MAX_DIM: 320, // downscaled before upload — faster transfer/encode, model resizes internally regardless
+
   async analyzeFrame(videoEl) {
+    const vw = videoEl.videoWidth || this.MAX_DIM;
+    const vh = videoEl.videoHeight || this.MAX_DIM;
+    const scale = Math.min(1, this.MAX_DIM / Math.max(vw, vh));
     const canvas = document.createElement("canvas");
-    canvas.width = videoEl.videoWidth || 320;
-    canvas.height = videoEl.videoHeight || 240;
+    canvas.width = Math.round(vw * scale);
+    canvas.height = Math.round(vh * scale);
     canvas.getContext("2d").drawImage(videoEl, 0, 0, canvas.width, canvas.height);
     const blob = await new Promise((resolve) => canvas.toBlob(resolve, "image/jpeg", 0.85));
     if (!blob) return "neutral";
