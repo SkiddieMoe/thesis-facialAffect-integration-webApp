@@ -54,8 +54,8 @@
 <script>window.ALL_EMOTIONS = {{ all_emotions | tojson }};
 window.CONSENT_VERSION = {{ consent_version | tojson }};
 window.ACTIVE_PAGE = {{ (active_page or "") | tojson }};</script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.2/marked.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.1.5/purify.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.2/marked.min.js" defer></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.1.5/purify.min.js" defer></script>
 <script src="{{ url_for('static', filename='core.js') }}"></script>
 {% block scripts %}{% endblock %}
 </body>
