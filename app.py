@@ -1,6 +1,7 @@
 import os
 import uuid
 import secrets
+import time
 from functools import wraps
 
 from flask import Flask, request, jsonify, render_template, session
@@ -196,6 +197,7 @@ def analyze_frame():
 
     frame_path = os.path.join(LIBREFACE_TMP_DIR, f"{uuid.uuid4().hex}.jpg")
     frame_file.save(frame_path)
+    t0 = time.time()
     try:
         result = libreface.get_facial_attributes_image(
             image_path=frame_path, temp_dir=LIBREFACE_TMP_DIR, device=LIBREFACE_DEVICE,
@@ -206,6 +208,11 @@ def analyze_frame():
         emotion = "neutral"
         print(f"[analyze-frame] LibreFace error: {e}")
     finally:
+        elapsed = time.time() - t0
+        # Diagnostic: consistently multi-second times here (not just the
+        # first call after idling) would point at LibreFace reloading its
+        # model from disk on every call, not GPU compute or Cloud Run itself.
+        print(f"[analyze-frame] LibreFace call took {elapsed:.2f}s (device={LIBREFACE_DEVICE})")
         try:
             os.remove(frame_path)
         except OSError:
