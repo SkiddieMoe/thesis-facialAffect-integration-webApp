@@ -284,31 +284,52 @@ async function populateCameraSelect(selectEl) {
 
 async function populateDrawer() {
   // Filter checkboxes
-  const grid = document.getElementById("drawerFilterGrid");
-  const current = new Set(await FilterStore.get());
-  grid.innerHTML = "";
-  window.ALL_EMOTIONS.forEach((e) => {
-    const label = document.createElement("label");
-    label.style.cssText = "display:flex;align-items:center;gap:6px;font-size:12.5px;text-transform:capitalize";
-    label.innerHTML = `<input type="checkbox" value="${e}" ${current.has(e) ? "checked" : ""}> ${e}`;
-    grid.appendChild(label);
-    label.querySelector("input").addEventListener("change", async (ev) => {
-      if (ev.target.checked) current.add(e); else current.delete(e);
-      await FilterStore.set([...current]);
-      document.dispatchEvent(new CustomEvent("filterChanged"));
+  try {
+    const grid = document.getElementById("drawerFilterGrid");
+    const current = new Set(await FilterStore.get());
+    grid.innerHTML = "";
+    window.ALL_EMOTIONS.forEach((e) => {
+      const label = document.createElement("label");
+      label.style.cssText = "display:flex;align-items:center;gap:6px;font-size:12.5px;text-transform:capitalize";
+      label.innerHTML = `<input type="checkbox" value="${e}" ${current.has(e) ? "checked" : ""}> ${e}`;
+      grid.appendChild(label);
+      label.querySelector("input").addEventListener("change", async (ev) => {
+        if (ev.target.checked) current.add(e); else current.delete(e);
+        await FilterStore.set([...current]);
+        document.dispatchEvent(new CustomEvent("filterChanged"));
+      });
     });
-  });
+  } catch (err) {
+    console.error("Filter section failed:", err);
+  }
 
   // Camera selector — persists across every page via CameraStore
-  await populateCameraSelect(document.getElementById("drawerCameraSelect"));
+  try {
+    await populateCameraSelect(document.getElementById("drawerCameraSelect"));
+  } catch (err) {
+    console.error("Camera section failed:", err);
+  }
 
   // Default status
-  const status = await AI.defaultStatus();
-  document.getElementById("defaultStatusLine").textContent =
-    `Audio Transcription: ${status.openai.available ? status.openai.model : "not configured"} · ` +
-    `Prompt Processing: ${status.deepseek.available ? status.deepseek.model : "not configured"}`;
+  try {
+    const status = await AI.defaultStatus();
+    document.getElementById("defaultStatusLine").textContent =
+      `Audio Transcription: ${status.openai.available ? status.openai.model : "not configured"} · ` +
+      `Prompt Processing: ${status.deepseek.available ? status.deepseek.model : "not configured"}`;
+  } catch (err) {
+    document.getElementById("defaultStatusLine").textContent =
+      "Could not reach the server to check default key status. Check the browser console and server logs.";
+    console.error("Default status check failed:", err);
+  }
 
-  renderAdminSection(document.getElementById("adminSection"));
+  // Admin section
+  try {
+    await renderAdminSection(document.getElementById("adminSection"));
+  } catch (err) {
+    document.getElementById("adminSection").innerHTML =
+      `<p class="hint" style="color:var(--live)">Could not load admin controls — see browser console.</p>`;
+    console.error("Admin section failed:", err);
+  }
 }
 
 async function renderAdminSection(container) {
