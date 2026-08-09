@@ -17,6 +17,24 @@ app.config.update(SESSION_COOKIE_SAMESITE="Lax", SESSION_COOKIE_HTTPONLY=True)
 ADMIN_PIN = os.environ.get("ADMIN_PIN")
 CONSENT_NOTICE_VERSION = "1.0"
 
+# Default (server-proxied) API keys can be set two ways: through the
+# PIN-gated admin UI (stored in GCS, supports multiple saved keys with
+# switching), or via these env vars as a bootstrap fallback — same pattern
+# as ADMIN_PIN. GCS wins if something's been configured there; otherwise
+# the app falls back to whatever's set here. Never both required.
+DEFAULT_ENV_KEYS = {
+    "openai": {
+        "key": os.environ.get("DEFAULT_OPENAI_API_KEY"),
+        "model": os.environ.get("DEFAULT_OPENAI_MODEL") or store.DEFAULT_OPENAI_MODEL,
+        "base_url": os.environ.get("DEFAULT_OPENAI_BASE_URL") or store.DEFAULT_OPENAI_BASE_URL,
+    },
+    "deepseek": {
+        "key": os.environ.get("DEFAULT_DEEPSEEK_API_KEY"),
+        "model": os.environ.get("DEFAULT_DEEPSEEK_MODEL") or store.DEFAULT_DEEPSEEK_MODEL,
+        "base_url": os.environ.get("DEFAULT_DEEPSEEK_BASE_URL") or store.DEFAULT_DEEPSEEK_BASE_URL,
+    },
+}
+
 # ── LibreFace ────────────────────────────────────────────────────────────────
 LIBREFACE_TMP_DIR = "/tmp/libreface"
 os.makedirs(LIBREFACE_TMP_DIR, exist_ok=True)
@@ -76,7 +94,14 @@ def default_keys_status():
     out = {}
     for service in ("openai", "deepseek"):
         active = store.get_active_default(service)
-        out[service] = {"available": active is not None, "model": (active or {}).get("model")}
+        available = active is not None and bool(active.get("key"))
+        model = (active or {}).get("model")
+        if not available:
+            env_creds = DEFAULT_ENV_KEYS.get(service)
+            if env_creds and env_creds.get("key"):
+                available = True
+                model = env_creds.get("model")
+        out[service] = {"available": available, "model": model}
     return jsonify(out)
 
 
@@ -149,7 +174,11 @@ def admin_set_filter():
 def _default_client(service: str):
     creds = store.get_active_default(service)
     if not creds or not creds.get("key"):
-        return None, None
+        env_creds = DEFAULT_ENV_KEYS.get(service)
+        if env_creds and env_creds.get("key"):
+            creds = env_creds
+        else:
+            return None, None
     kwargs = {"api_key": creds["key"]}
     if creds.get("base_url"):
         kwargs["base_url"] = creds["base_url"]

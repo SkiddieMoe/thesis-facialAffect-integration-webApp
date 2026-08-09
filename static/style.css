@@ -95,6 +95,30 @@ main { max-width: 880px; margin: 0 auto; padding: 40px 24px 80px; }
 .chat-layout { display: flex; flex-direction: column; height: calc(100vh - 130px); }
 .chat-log { flex: 1; overflow-y: auto; padding: 8px 4px; }
 .log-line { margin-bottom: 14px; font-size: 14px; }
+.log-line p, .triggered-card p, .history-item p { margin: 0 0 0.6em; }
+.log-line p:last-child, .triggered-card p:last-child, .history-item p:last-child { margin-bottom: 0; }
+.log-line ul, .log-line ol, .triggered-card ul, .triggered-card ol, .history-item ul, .history-item ol {
+  margin: 0.4em 0 0.6em; padding-left: 1.3em;
+}
+.log-line li, .triggered-card li, .history-item li { margin-bottom: 0.2em; }
+.log-line code, .triggered-card code, .history-item code {
+  font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 0.9em;
+  background: var(--surface-2); padding: 0.1em 0.35em; border-radius: 4px;
+}
+.log-line pre, .triggered-card pre, .history-item pre {
+  background: var(--surface-2); border-radius: 8px; padding: 10px 12px;
+  overflow-x: auto; margin: 0.4em 0 0.6em;
+}
+.log-line pre code, .triggered-card pre code, .history-item pre code { background: none; padding: 0; }
+.log-line strong, .triggered-card strong, .history-item strong { font-weight: 600; }
+.log-line h1, .log-line h2, .log-line h3,
+.triggered-card h1, .triggered-card h2, .triggered-card h3,
+.history-item h1, .history-item h2, .history-item h3 {
+  font-family: var(--font-body); font-size: 1em; font-weight: 600; margin: 0.6em 0 0.3em;
+}
+.log-line blockquote, .triggered-card blockquote, .history-item blockquote {
+  border-left: 2px solid var(--border); margin: 0.4em 0; padding-left: 10px; color: var(--text-muted);
+}
 .log-who { font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.03em; }
 .log-who.ai { color: var(--ai); }
 .log-who.user { color: var(--text); }

@@ -25,7 +25,9 @@
     list.forEach((l) => {
       const div = document.createElement("div");
       div.className = "log-line";
-      div.innerHTML = `<div class="log-who ${l.who === "AI" ? "ai" : "user"}">${escapeHtml(l.who)}</div>${escapeHtml(l.text)}`;
+      const isAI = l.who === "AI";
+      const body = isAI ? renderMarkdown(l.text) : escapeHtml(l.text);
+      div.innerHTML = `<div class="log-who ${isAI ? "ai" : "user"}">${escapeHtml(l.who)}</div>${body}`;
       logBox.appendChild(div);
     });
     logBox.scrollTop = logBox.scrollHeight;

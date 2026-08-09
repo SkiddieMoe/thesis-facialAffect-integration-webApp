@@ -125,11 +125,12 @@
   }
 
   function renderTriggered(entry) {
+    const replyText = historyView === "chat" ? entry.chatReply : entry.controlReply;
     triggeredArea.innerHTML = `
       <div class="triggered-card">
         <div class="emo-tag">Detected: ${escapeHtml(entry.gesture)}</div>
         <p style="font-size:13px;margin:6px 0"><strong>Transcript:</strong> ${escapeHtml(entry.transcript)}</p>
-        <p style="font-size:13.5px">${escapeHtml(historyView === "chat" ? entry.chatReply : entry.controlReply)}</p>
+        <div style="font-size:13.5px">${renderMarkdown(replyText)}</div>
         <button class="btn btn-block" id="closeTriggeredBtn">Close</button>
       </div>
     `;
@@ -145,10 +146,11 @@
     history.forEach((entry) => {
       const div = document.createElement("div");
       div.className = "history-item";
+      const replyText = historyView === "chat" ? entry.chatReply : entry.controlReply;
       div.innerHTML = `
         <div class="ts">${entry.ts.toLocaleTimeString()} · ${escapeHtml(entry.gesture)}</div>
         <div><strong>Transcript:</strong> ${escapeHtml(entry.transcript)}</div>
-        <div>${escapeHtml(historyView === "chat" ? entry.chatReply : entry.controlReply)}</div>
+        <div>${renderMarkdown(replyText)}</div>
       `;
       historyList.appendChild(div);
     });
