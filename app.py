@@ -133,7 +133,10 @@ def admin_get_filter():
 def admin_set_filter():
     data = request.get_json(force=True) or {}
     emotions = [e for e in (data.get("emotions") or []) if e in ALL_EMOTIONS]
-    store.set_admin_filter(emotions)
+    try:
+        store.set_admin_filter(emotions)
+    except RuntimeError as e:
+        return jsonify({"error": str(e)}), 503
     return jsonify({"emotions": emotions})
 
 
@@ -295,8 +298,15 @@ def consent_tally():
     version = str(data.get("notice_version", CONSENT_NOTICE_VERSION))
     if context not in ("landing", "listener"):
         return jsonify({"error": "Invalid context."}), 400
-    count = store.increment_consent_tally(context, version)
-    return jsonify({"context": context, "version": version, "count": count})
+    try:
+        count = store.increment_consent_tally(context, version)
+        return jsonify({"context": context, "version": version, "count": count})
+    except RuntimeError:
+        # No GCS bucket configured — the tally is a nice-to-have aggregate
+        # count, not a requirement for consent handling itself (the actual
+        # gate is enforced client-side regardless). Don't error out a page
+        # load over an optional counter having nowhere to write.
+        return jsonify({"context": context, "version": version, "count": None})
 
 
 if __name__ == "__main__":

@@ -31,6 +31,12 @@ RUN pip install --no-cache-dir --upgrade typing_extensions
 
 COPY . .
 
+# Pre-download LibreFace's model weights during the BUILD, not at container
+# startup — see warmup_libreface.py for why. Trades a slower build for
+# every future cold start skipping the download entirely. Non-fatal if it
+# fails; the app just falls back to downloading at runtime as before.
+RUN python warmup_libreface.py
+
 ENV PORT=8080
 EXPOSE 8080
 CMD ["gunicorn", "--bind", "0.0.0.0:8080", "--workers", "1", "--threads", "4", "--timeout", "180", "app:app"]

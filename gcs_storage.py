@@ -26,24 +26,39 @@ _bucket = None
 
 
 def _get_bucket():
+    """Returns None if GCS isn't configured, rather than raising — GCS is
+    now optional infrastructure (default keys come from env vars; GCS-backed
+    admin filter-sync is a nice-to-have). A read path hitting this must
+    degrade to 'nothing here' since default_keys_status() is a public,
+    unauthenticated endpoint every visitor's page load calls."""
     global _client, _bucket
     if _bucket is None:
         if not BUCKET_NAME:
-            raise RuntimeError("GCS_BUCKET_NAME environment variable is not set.")
+            return None
         _client = storage.Client()
         _bucket = _client.bucket(BUCKET_NAME)
     return _bucket
 
 
 def read_text(blob_name: str):
-    blob = _get_bucket().blob(blob_name)
+    bucket = _get_bucket()
+    if bucket is None:
+        return None
+    blob = bucket.blob(blob_name)
     if not blob.exists():
         return None
     return blob.download_as_text()
 
 
 def write_text(blob_name: str, content: str):
-    _get_bucket().blob(blob_name).upload_from_string(content, content_type="text/plain; charset=utf-8")
+    bucket = _get_bucket()
+    if bucket is None:
+        raise RuntimeError(
+            "GCS_BUCKET_NAME environment variable is not set — cannot save. "
+            "This only matters for the optional admin filter-sync feature; "
+            "default keys work fine via env vars without any GCS bucket."
+        )
+    bucket.blob(blob_name).upload_from_string(content, content_type="text/plain; charset=utf-8")
 
 
 def read_json(blob_name: str, default=None):
