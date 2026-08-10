@@ -1,6 +1,18 @@
 // ── Debug mode (session-only, derived fresh from the URL every load) ──
 window.DEBUG_MODE = new URLSearchParams(location.search).get("debug") === "1";
 
+// Warm up LibreFace on the server as early as possible on ANY page — fires
+// immediately, before the consent gate even renders, so the model-loading
+// time overlaps with the unavoidable "read and agree" dead time instead of
+// landing on the user's first real analysis in Chat/Listener. Doesn't
+// touch the visitor's own camera/data at all — purely a server-side
+// warmup against a throwaway image. Deduped per browser session since
+// repeat calls are pointless once the instance is already warm.
+if (!sessionStorage.getItem("aibuddy.warmedUp")) {
+  sessionStorage.setItem("aibuddy.warmedUp", "1");
+  fetch("/api/warmup", { method: "POST" }).catch(() => {});
+}
+
 function escapeHtml(str) {
   const d = document.createElement("div");
   d.textContent = str;

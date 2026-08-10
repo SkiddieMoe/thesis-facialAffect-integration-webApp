@@ -219,6 +219,30 @@ def analyze_frame():
     return jsonify({"emotion": emotion})
 
 
+@app.route("/api/warmup", methods=["POST"])
+def warmup():
+    """Fire-and-forget, called from every page's load (not just Chat/
+    Listener). Triggers LibreFace's model construction/weight loading
+    against a throwaway blank image — nothing about a real visitor is
+    analyzed here, it's purely to get the model warm on THIS running
+    container instance before the user's actual session needs it. /tmp
+    resets on every fresh Cloud Run instance, so this warms up per-instance
+    at runtime rather than relying on anything baked in at build time.
+    Safe to call repeatedly — near-instant once already warm."""
+    try:
+        from PIL import Image
+        warmup_path = os.path.join(LIBREFACE_TMP_DIR, "warmup.jpg")
+        Image.new("RGB", (224, 224), color=(128, 128, 128)).save(warmup_path)
+        libreface.get_facial_attributes_image(
+            image_path=warmup_path, temp_dir=LIBREFACE_TMP_DIR, device=LIBREFACE_DEVICE,
+        )
+        os.remove(warmup_path)
+        return jsonify({"warmed": True})
+    except Exception as e:
+        print(f"[warmup] Failed (non-fatal): {e}")
+        return jsonify({"warmed": False})
+
+
 @app.route("/api/cleanup-sweep", methods=["POST"])
 def cleanup_sweep():
     import time
