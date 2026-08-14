@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="{{ lang }}">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -11,9 +11,13 @@
 <header class="site-header">
   <a href="/" class="brand">Affect Companion</a>
   <nav class="nav-links">
-    <a href="/chat" class="nav-link {{ 'active' if active_page == 'chat' }}">Chat</a>
-    <a href="/listener" class="nav-link {{ 'active' if active_page == 'listener' }}">Listener Mode</a>
-    <button class="settings-btn" id="openSettingsBtn">Settings</button>
+    <a href="/chat" class="nav-link {{ 'active' if active_page == 'chat' }}">{{ t.nav_chat }}</a>
+    <a href="/listener" class="nav-link {{ 'active' if active_page == 'listener' }}">{{ t.nav_listener }}</a>
+    <button class="settings-btn" id="openSettingsBtn">{{ t.nav_settings }}</button>
+    <span class="lang-switch">
+      <a href="?lang=en" class="{{ 'active' if lang == 'en' }}">EN</a> ·
+      <a href="?lang=es" class="{{ 'active' if lang == 'es' }}">ES</a>
+    </span>
   </nav>
 </header>
 
@@ -25,35 +29,37 @@
 <div class="drawer-backdrop" id="drawerBackdrop"></div>
 <div class="drawer" id="settingsDrawer">
   <button class="close-btn" id="closeDrawerBtn">×</button>
-  <h3>Filter Emotions</h3>
-  <p class="hint">Listener Mode auto-stops a recording when one of these is detected.</p>
+  <h3>{{ t.drawer_filter_heading }}</h3>
+  <p class="hint">{{ t.drawer_filter_hint }}</p>
   <div class="checkbox-grid" id="drawerFilterGrid"></div>
 
-  <h3>Camera</h3>
-  <p class="hint">Applies on every page. Names appear after you've granted camera access once.</p>
+  <h3>{{ t.drawer_camera_heading }}</h3>
+  <p class="hint">{{ t.drawer_camera_hint }}</p>
   <select id="drawerCameraSelect" style="width:100%;padding:6px 8px;border:1px solid var(--border);border-radius:6px;font-size:13px"></select>
 
-  <h3>My personal keys</h3>
-  <p class="hint">Stored only in this browser. Calls go directly from your browser to the provider — never through this server.</p>
+  <h3>{{ t.drawer_keys_heading }}</h3>
+  <p class="hint">{{ t.drawer_keys_hint }}</p>
   {% for svc in ["openai", "deepseek"] %}
   <fieldset>
-    <legend>{{ "Audio Transcription" if svc == "openai" else "Prompt Processing" }}</legend>
-    <div class="field"><label>API key</label><input type="password" id="pk-{{ svc }}-key"></div>
-    <div class="field"><label>Model</label><input type="text" id="pk-{{ svc }}-model" placeholder="{{ 'whisper-1' if svc == 'openai' else 'deepseek-v4-flash' }}"></div>
-    <div class="field"><label>Base URL</label><input type="text" id="pk-{{ svc }}-base" placeholder="{{ 'OpenAI default' if svc == 'openai' else 'https://api.deepseek.com' }}"></div>
-    <button class="btn btn-block" data-svc="{{ svc }}" id="pk-{{ svc }}-save">Save</button>
+    <legend>{{ t.svc_openai_label if svc == "openai" else t.svc_deepseek_label }}</legend>
+    <div class="field"><label>{{ t.field_api_key }}</label><input type="password" id="pk-{{ svc }}-key"></div>
+    <div class="field"><label>{{ t.field_model }}</label><input type="text" id="pk-{{ svc }}-model" placeholder="{{ 'whisper-1' if svc == 'openai' else 'deepseek-v4-flash' }}"></div>
+    <div class="field"><label>{{ t.field_base_url }}</label><input type="text" id="pk-{{ svc }}-base" placeholder="{{ t.placeholder_openai_base if svc == 'openai' else 'https://api.deepseek.com' }}"></div>
+    <button class="btn btn-block" data-svc="{{ svc }}" id="pk-{{ svc }}-save">{{ t.btn_save }}</button>
     <p class="hint" id="pk-{{ svc }}-status"></p>
   </fieldset>
   {% endfor %}
 
-  <h3>App defaults</h3>
-  <p class="hint" id="defaultStatusLine">Checking…</p>
+  <h3>{{ t.drawer_defaults_heading }}</h3>
+  <p class="hint" id="defaultStatusLine">{{ t.checking }}</p>
   <div id="adminSection"></div>
 </div>
 
 <script>window.ALL_EMOTIONS = {{ all_emotions | tojson }};
 window.CONSENT_VERSION = {{ consent_version | tojson }};
-window.ACTIVE_PAGE = {{ (active_page or "") | tojson }};</script>
+window.ACTIVE_PAGE = {{ (active_page or "") | tojson }};
+window.LANG = {{ lang | tojson }};
+window.T = {{ t | tojson }};</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.2/marked.min.js" defer></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.1.5/purify.min.js" defer></script>
 <script src="{{ url_for('static', filename='core.js') }}"></script>

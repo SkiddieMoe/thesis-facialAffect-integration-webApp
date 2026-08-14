@@ -4,11 +4,12 @@ import secrets
 import time
 from functools import wraps
 
-from flask import Flask, request, jsonify, render_template, session
+from flask import Flask, request, jsonify, render_template, session, make_response
 from openai import OpenAI
 import libreface
 
 import gcs_storage as store
+from translations import TRANSLATIONS, SUPPORTED_LANGS, DEFAULT_LANG
 
 app = Flask(__name__)
 # Static files (JS/CSS) never get cached by the browser — this is a small,
@@ -170,19 +171,44 @@ def send_default_deepseek(prompt_text: str) -> str:
 
 
 # ── Pages (real routes, not simulated windows) ──────────────────────────────
+def get_locale():
+    """Explicit ?lang= wins (and gets remembered via cookie below); else a
+    previously-set cookie; else the browser's own language preference;
+    else English."""
+    lang = request.args.get("lang")
+    if lang in SUPPORTED_LANGS:
+        return lang
+    lang = request.cookies.get("lang")
+    if lang in SUPPORTED_LANGS:
+        return lang
+    return request.accept_languages.best_match(SUPPORTED_LANGS) or DEFAULT_LANG
+
+
+def render_page(template, active_page, **extra):
+    lang = get_locale()
+    t = TRANSLATIONS.get(lang, TRANSLATIONS[DEFAULT_LANG])
+    resp = make_response(render_template(
+        template, t=t, lang=lang, all_emotions=ALL_EMOTIONS,
+        consent_version=CONSENT_NOTICE_VERSION, active_page=active_page, **extra
+    ))
+    if request.args.get("lang") in SUPPORTED_LANGS:
+        resp.set_cookie("lang", lang, max_age=60 * 60 * 24 * 365)
+    return resp
+
+
 @app.route("/")
 def landing():
-    return render_template("landing.html", all_emotions=ALL_EMOTIONS, consent_version=CONSENT_NOTICE_VERSION, active_page="landing")
+    return render_page("landing.html", "landing")
 
 
 @app.route("/chat")
 def chat_page():
-    return render_template("chat.html", all_emotions=ALL_EMOTIONS, consent_version=CONSENT_NOTICE_VERSION, active_page="chat")
+    return render_page("chat.html", "chat")
 
 
 @app.route("/listener")
 def listener_page():
-    return render_template("listener.html", all_emotions=ALL_EMOTIONS, consent_version=CONSENT_NOTICE_VERSION, active_page="listener")
+    return render_page("listener.html", "listener")
 
 
 # ── Emotion analysis — LibreFace requires a file path, so a frame briefly

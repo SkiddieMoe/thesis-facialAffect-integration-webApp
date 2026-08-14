@@ -9,7 +9,7 @@
   const emotionReadout = document.getElementById("chatEmotionReadout");
   function setCurrentEmotion(e) {
     currentEmotion = e;
-    if (emotionReadout) emotionReadout.textContent = `Detected: ${e}`;
+    if (emotionReadout) emotionReadout.textContent = `${(window.T || {}).detected_prefix || "Detected"}: ${emotionLabel(e)}`;
   }
 
   const chatHistory = [], controlHistory = [];
@@ -19,7 +19,7 @@
     logBox.innerHTML = "";
     const list = showingControl ? controlHistory : chatHistory;
     if (!list.length) {
-      logBox.innerHTML = `<div class="log-empty">No messages yet — say hi below.</div>`;
+      logBox.innerHTML = `<div class="log-empty">${(window.T || {}).chat_log_empty || "No messages yet."}</div>`;
       return;
     }
     list.forEach((l) => {
@@ -87,7 +87,7 @@
     const btnRow = document.getElementById("debugButtons");
     window.ALL_EMOTIONS.forEach((e) => {
       const btn = document.createElement("button");
-      btn.className = "btn"; btn.textContent = e[0].toUpperCase() + e.slice(1);
+      btn.className = "btn"; btn.textContent = emotionLabel(e);
       btn.addEventListener("click", () => setCurrentEmotion(e));
       btnRow.appendChild(btn);
     });
@@ -95,15 +95,16 @@
 
   async function send(text) {
     if (!text.trim()) return;
-    chatHistory.push({ who: `You (${currentEmotion})`, text });
-    controlHistory.push({ who: "You", text });
+    const T = window.T || {};
+    chatHistory.push({ who: `${T.you_label || "You"} (${emotionLabel(currentEmotion)})`, text });
+    controlHistory.push({ who: T.you_label || "You", text });
     render();
     const [chatReply, controlReply] = await Promise.all([
       AI.chatSend(text, currentEmotion),
       AI.controlSend(text),
     ]);
-    chatHistory.push({ who: "AI", text: chatReply });
-    controlHistory.push({ who: "AI", text: controlReply });
+    chatHistory.push({ who: T.ai_label || "AI", text: chatReply });
+    controlHistory.push({ who: T.ai_label || "AI", text: controlReply });
     render();
   }
 

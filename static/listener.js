@@ -22,7 +22,7 @@
     grid.innerHTML = "";
     window.ALL_EMOTIONS.forEach((e) => {
       const label = document.createElement("label");
-      label.innerHTML = `<input type="checkbox" value="${e}" ${triggerSet.has(e) ? "checked" : ""}> ${e}`;
+      label.innerHTML = `<input type="checkbox" value="${e}" ${triggerSet.has(e) ? "checked" : ""}> ${emotionLabel(e)}`;
       grid.appendChild(label);
       label.querySelector("input").addEventListener("change", async (ev) => {
         if (ev.target.checked) triggerSet.add(e); else triggerSet.delete(e);
@@ -69,7 +69,7 @@
       stream = await navigator.mediaDevices.getUserMedia({ video: videoConstraint });
     } catch {
       try { stream = await navigator.mediaDevices.getUserMedia({ video: true }); }
-      catch { alert("Camera access is required for Listener Mode."); return; }
+      catch { alert((window.T || {}).camera_alert || "Camera access is required for Listener Mode."); return; }
     }
     video.srcObject = stream;
     gate.style.display = "none";
@@ -79,7 +79,7 @@
 
   async function runAnalysisCycle() {
     const emotion = await EmotionAnalysis.analyzeFrame(video);
-    readout.textContent = `Detected: ${emotion}`;
+    readout.textContent = `${(window.T || {}).detected_prefix || "Detected"}: ${emotionLabel(emotion)}`;
     const now = Date.now();
     if (emotion !== lastEmotion && now - lastChangeTime >= COOLDOWN_MS) {
       lastChangeTime = now; lastEmotion = emotion;
@@ -95,12 +95,12 @@
     recorder.ondataavailable = (e) => { if (e.data.size) chunks.push(e.data); };
     recorder.start();
     listening = true;
-    recordBtn.textContent = "⏹ Stop Recording";
+    recordBtn.textContent = (window.T || {}).btn_stop_recording || "⏹ Stop Recording";
   });
 
   function stopRecording(gesture) {
     listening = false;
-    recordBtn.textContent = "🎙 Start Recording";
+    recordBtn.textContent = (window.T || {}).btn_start_recording || "🎙 Start Recording";
     if (recorder && recorder.state === "recording") {
       recorder.onstop = () => onRecordingStopped(gesture);
       recorder.stop();
@@ -110,7 +110,7 @@
 
   async function onRecordingStopped(gesture) {
     const blob = new Blob(chunks, { type: "audio/webm" });
-    triggeredArea.innerHTML = `<div class="triggered-card"><p class="hint">Transcribing…</p></div>`;
+    triggeredArea.innerHTML = `<div class="triggered-card"><p class="hint">${(window.T || {}).transcribing || "Transcribing…"}</p></div>`;
 
     const transcript = await AI.transcribe(blob);
     const [chatReply, controlReply] = await Promise.all([
@@ -125,22 +125,24 @@
   }
 
   function renderTriggered(entry) {
+    const T = window.T || {};
     const replyText = historyView === "chat" ? entry.chatReply : entry.controlReply;
     triggeredArea.innerHTML = `
       <div class="triggered-card">
-        <div class="emo-tag">Detected: ${escapeHtml(entry.gesture)}</div>
-        <p style="font-size:13px;margin:6px 0"><strong>Transcript:</strong> ${escapeHtml(entry.transcript)}</p>
+        <div class="emo-tag">${T.detected_prefix || "Detected"}: ${escapeHtml(emotionLabel(entry.gesture))}</div>
+        <p style="font-size:13px;margin:6px 0"><strong>${T.transcript_label || "Transcript:"}</strong> ${escapeHtml(entry.transcript)}</p>
         <div style="font-size:13.5px">${renderMarkdown(replyText)}</div>
-        <button class="btn btn-block" id="closeTriggeredBtn">Close</button>
+        <button class="btn btn-block" id="closeTriggeredBtn">${T.btn_close || "Close"}</button>
       </div>
     `;
     triggeredArea.querySelector("#closeTriggeredBtn").addEventListener("click", () => { triggeredArea.innerHTML = ""; });
   }
 
   function renderHistory() {
+    const T = window.T || {};
     historyList.innerHTML = "";
     if (!history.length) {
-      historyList.innerHTML = `<p class="hint">No exchanges yet this session.</p>`;
+      historyList.innerHTML = `<p class="hint">${T.history_empty || "No exchanges yet this session."}</p>`;
       return;
     }
     history.forEach((entry) => {
@@ -148,8 +150,8 @@
       div.className = "history-item";
       const replyText = historyView === "chat" ? entry.chatReply : entry.controlReply;
       div.innerHTML = `
-        <div class="ts">${entry.ts.toLocaleTimeString()} · ${escapeHtml(entry.gesture)}</div>
-        <div><strong>Transcript:</strong> ${escapeHtml(entry.transcript)}</div>
+        <div class="ts">${entry.ts.toLocaleTimeString()} · ${escapeHtml(emotionLabel(entry.gesture))}</div>
+        <div><strong>${T.transcript_label || "Transcript:"}</strong> ${escapeHtml(entry.transcript)}</div>
         <div>${renderMarkdown(replyText)}</div>
       `;
       historyList.appendChild(div);

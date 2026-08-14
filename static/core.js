@@ -19,6 +19,13 @@ function escapeHtml(str) {
   return d.innerHTML;
 }
 
+// Emotion VALUES sent to/from the backend always stay English lowercase
+// (e.g. "happy") — this only translates the DISPLAYED label.
+function emotionLabel(e) {
+  const emotions = (window.T || {}).emotions || {};
+  return emotions[e] || (e ? e[0].toUpperCase() + e.slice(1) : e);
+}
+
 // Renders AI response text as sanitized markdown HTML. Response text is
 // treated as untrusted — a personal key can point at ANY provider the user
 // chooses, so this always goes through DOMPurify before touching the DOM,
@@ -47,21 +54,20 @@ const ConsentGate = {
   },
   ensure() {
     if (this.isConsented()) return;
+    const T = window.T || {};
     const overlay = document.createElement("div");
     overlay.className = "consent-overlay";
     overlay.innerHTML = `
       <div class="consent-card">
-        <h2>Before you begin</h2>
-        <p>This app uses an AI system to analyze facial expressions during
-        conversation (Chat Mode reads your own; Listener Mode reads someone
-        else's, with its own separate notice each time).</p>
+        <h2>${T.consent_title}</h2>
+        <p>${T.consent_body_intro}</p>
         <ul>
-          <li>No conversation transcripts or responses are stored on our server.</li>
-          <li>Camera frames are sent for classification and deleted immediately after.</li>
-          <li>You can optionally add your own AI provider key, kept only in this browser.</li>
+          <li>${T.consent_li1}</li>
+          <li>${T.consent_li2}</li>
+          <li>${T.consent_li3}</li>
         </ul>
-        <label><input type="checkbox" id="consentCheckbox"> I understand and agree to proceed.</label>
-        <button class="btn btn-primary btn-block" id="consentAgreeBtn" disabled>Agree & Continue</button>
+        <label><input type="checkbox" id="consentCheckbox"> ${T.consent_agree_label}</label>
+        <button class="btn btn-primary btn-block" id="consentAgreeBtn" disabled>${T.consent_agree_btn}</button>
       </div>
     `;
     document.body.appendChild(overlay);
@@ -254,7 +260,7 @@ function showToast(text) {
   setTimeout(() => toast.remove(), 5000);
 }
 if (window.DEBUG_MODE) {
-  window.addEventListener("load", () => setTimeout(() => showToast("Debug tools unlocked — see Chat's debug section and Settings."), 700));
+  window.addEventListener("load", () => setTimeout(() => showToast((window.T || {}).toast_debug_unlocked || "Debug tools unlocked."), 700));
 }
 
 // ── Settings drawer (shared, identical on every page) ───────────────────
@@ -284,26 +290,27 @@ function initSettingsDrawer() {
         model: document.getElementById(`pk-${svc}-model`).value.trim(),
         baseUrl: document.getElementById(`pk-${svc}-base`).value.trim(),
       });
-      document.getElementById(`pk-${svc}-status`).textContent = "Saved to this browser.";
+      document.getElementById(`pk-${svc}-status`).textContent = (window.T || {}).pk_saved || "Saved to this browser.";
     });
   });
 }
 
 async function populateCameraSelect(selectEl) {
+  const T = window.T || {};
   const devices = await CameraStore.listVideoInputs();
   const current = CameraStore.get();
-  selectEl.innerHTML = `<option value="">System default</option>`;
+  selectEl.innerHTML = `<option value="">${T.camera_system_default || "System default"}</option>`;
   const hasLabels = devices.some((d) => d.label);
   devices.forEach((d, i) => {
     const opt = document.createElement("option");
     opt.value = d.deviceId;
-    opt.textContent = d.label || `Camera ${i + 1}`;
+    opt.textContent = d.label || `${T.drawer_camera_heading || "Camera"} ${i + 1}`;
     if (d.deviceId === current) opt.selected = true;
     selectEl.appendChild(opt);
   });
   if (!hasLabels && devices.length) {
     const hint = selectEl.parentElement?.querySelector(".hint");
-    if (hint) hint.textContent = "Camera names will appear after you grant camera access once — open Chat or Listener Mode first, then come back here.";
+    if (hint) hint.textContent = T.camera_names_hint || "Camera names will appear after you grant camera access once.";
   }
   selectEl.addEventListener("change", () => {
     CameraStore.set(selectEl.value || null);
@@ -319,8 +326,8 @@ async function populateDrawer() {
     grid.innerHTML = "";
     window.ALL_EMOTIONS.forEach((e) => {
       const label = document.createElement("label");
-      label.style.cssText = "display:flex;align-items:center;gap:6px;font-size:12.5px;text-transform:capitalize";
-      label.innerHTML = `<input type="checkbox" value="${e}" ${current.has(e) ? "checked" : ""}> ${e}`;
+      label.style.cssText = "display:flex;align-items:center;gap:6px;font-size:12.5px";
+      label.innerHTML = `<input type="checkbox" value="${e}" ${current.has(e) ? "checked" : ""}> ${emotionLabel(e)}`;
       grid.appendChild(label);
       label.querySelector("input").addEventListener("change", async (ev) => {
         if (ev.target.checked) current.add(e); else current.delete(e);
@@ -367,12 +374,13 @@ async function renderAdminSection(container) {
     return;
   }
   const isAdmin = (await fetch("/api/admin/status").then(r => r.json())).admin;
+  const T = window.T || {};
   if (!isAdmin) {
-    container.innerHTML = `<button class="btn btn-block" id="unlockAdminBtn">🔒 Unlock admin (syncs your filter server-side)</button>`;
+    container.innerHTML = `<button class="btn btn-block" id="unlockAdminBtn">${T.btn_unlock_admin || "🔒 Unlock admin"}</button>`;
     container.querySelector("#unlockAdminBtn").addEventListener("click", () => openPinPrompt(() => renderAdminSection(container)));
     return;
   }
-  container.innerHTML = `<p class="hint" style="color:var(--ai)">Admin unlocked. Your filter now syncs to the server.</p>`;
+  container.innerHTML = `<p class="hint" style="color:var(--ai)">${T.admin_unlocked || "Admin unlocked."}</p>`;
 }
 
 function openPinPrompt(onSuccess) {
