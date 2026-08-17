@@ -23,9 +23,21 @@ RUN pip install --no-cache-dir -r requirements.txt
 # companion packages installed alongside it. A few now-unused nvidia-*-cu11
 # packages from libreface's pin get left on disk — harmless, just a bit of
 # extra image size.
+#
+# --extra-index-url, NOT --index-url: the latter REPLACES pip's normal
+# index entirely, meaning pip would search ONLY download.pytorch.org for
+# every transitive dependency too (typing-extensions, build tools like
+# flit_core, etc.) — packages that index was never meant to fully host.
+# When PyTorch's index doesn't carry a compatible wheel for one of those,
+# pip falls back to a source build, which then ALSO can't find its own
+# build dependencies there, and the whole install collapses. --extra-
+# index-url adds PyTorch's index alongside normal PyPI instead, so the
+# CUDA-specific torch/torchvision/torchaudio wheels still come from
+# PyTorch's index (the only place they exist), while everything else
+# resolves normally from PyPI.
 RUN pip install --no-cache-dir --force-reinstall \
     torch==2.5.1 torchvision==0.20.1 torchaudio==2.5.1 \
-    --index-url https://download.pytorch.org/whl/cu121
+    --extra-index-url https://download.pytorch.org/whl/cu121
 
 # The torch reinstall above is its own isolated pip resolution — it only
 # sees torch's own loose "typing_extensions>=4.8.0" requirement and picks
