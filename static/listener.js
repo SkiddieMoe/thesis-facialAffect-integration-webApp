@@ -2,7 +2,22 @@
   let stream = null, micStream = null, recorder = null, chunks = [];
   let listening = false, analysisTimer = null;
   let lastEmotion = "neutral", lastChangeTime = 0;
+  // POST-registration refractory period: minimum time after a sustained
+  // change IS registered before the NEXT one can register. Does NOT
+  // control how long an emotion must persist BEFORE registering — that's
+  // SUSTAIN_MS below. Two separate, orthogonal concepts (same design as
+  // the desktop app).
   const COOLDOWN_MS = 2000;
+  // A detected emotion only registers as a genuine "sustained change" once
+  // the SAME classification has held continuously for at least this long —
+  // a single differing analysis cycle is no longer enough on its own.
+  const SUSTAIN_MS = 1000;
+  // The in-progress candidate for a sustained change: an emotion currently
+  // differing from lastEmotion that's been continuously observed since
+  // pendingSince. Reset whenever a new recording starts — see the
+  // recordBtn handler — otherwise a candidate from an earlier, unrelated
+  // recording could count toward this one.
+  let pendingEmotion = null, pendingSince = 0;
   let triggerSet = new Set();
   let historyView = "chat"; // "chat" = tagged, "control" = untagged
   const history = []; // volatile — cleared on page leave, never persisted
@@ -81,9 +96,35 @@
     const emotion = await EmotionAnalysis.analyzeFrame(video);
     readout.textContent = `${(window.T || {}).detected_prefix || "Detected"}: ${emotionLabel(emotion)}`;
     const now = Date.now();
-    if (emotion !== lastEmotion && now - lastChangeTime >= COOLDOWN_MS) {
-      lastChangeTime = now; lastEmotion = emotion;
-      if (listening && triggerSet.has(emotion)) stopRecording(emotion);
+
+    if (emotion === lastEmotion) {
+      // Matches the currently-registered state — no candidate in progress.
+      pendingEmotion = null;
+      pendingSince = 0;
+    } else if (emotion === pendingEmotion) {
+      // Continuing an existing candidate streak.
+      if (now - pendingSince >= SUSTAIN_MS) {
+        // Held long enough to count as genuinely sustained. Whether it's
+        // actually ACTED on yet still depends on the separate post-trigger
+        // refractory cooldown below — being sustained doesn't override
+        // that, it just makes this emotion eligible.
+        if (now - lastChangeTime >= COOLDOWN_MS) {
+          lastChangeTime = now;
+          lastEmotion = emotion;
+          pendingEmotion = null;
+          pendingSince = 0;
+          if (listening && triggerSet.has(emotion)) stopRecording(emotion);
+        }
+        // else: sustained long enough, just still inside the refractory
+        // window — keep the streak alive rather than resetting it, so it
+        // registers the instant the refractory period ends instead of
+        // re-accumulating from zero.
+      }
+      // else: not yet held long enough — keep waiting.
+    } else {
+      // A genuinely different candidate emotion appeared — start a fresh streak.
+      pendingEmotion = emotion;
+      pendingSince = now;
     }
   }
 
@@ -95,6 +136,12 @@
     recorder.ondataavailable = (e) => { if (e.data.size) chunks.push(e.data); };
     recorder.start();
     listening = true;
+    // Fresh window for THIS recording — otherwise a trigger from an
+    // earlier, unrelated recording keeps blocking this one until the full
+    // cooldown elapses since that old trigger, not since this one began.
+    lastChangeTime = 0;
+    pendingEmotion = null;
+    pendingSince = 0;
     recordBtn.textContent = (window.T || {}).btn_stop_recording || "⏹ Stop Recording";
   });
 
