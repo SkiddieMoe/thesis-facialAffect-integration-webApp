@@ -47,6 +47,18 @@ RUN pip install --no-cache-dir --force-reinstall \
 # Bump it back up as the final step so nothing else regresses from this.
 RUN pip install --no-cache-dir --upgrade typing_extensions
 
+# Same failure pattern, different package: the torch/torchvision reinstall
+# above pulls in torchvision's OWN numpy dependency too (--force-reinstall
+# reinstalls its whole dependency tree, not just torch/torchvision/
+# torchaudio themselves), and with --extra-index-url now giving pip access
+# to regular PyPI, it can resolve to the latest numpy — which today means
+# NumPy 2.x. NumPy 2.0 changed its internal C struct layout, so
+# pandas/scikit-learn/opencv (already installed above, compiled against
+# NumPy 1.x's ABI) fail at import with "numpy.dtype size changed... may
+# indicate binary incompatibility" — the standard signature of exactly
+# this mismatch. Pin back to what libreface's own ecosystem expects.
+RUN pip install --no-cache-dir "numpy==1.26.4"
+
 COPY . .
 
 # Pre-download LibreFace's model weights during the BUILD, not at container
