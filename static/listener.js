@@ -160,8 +160,28 @@
     triggeredArea.innerHTML = `<div class="triggered-card"><p class="hint">${(window.T || {}).transcribing || "Transcribing…"}</p></div>`;
 
     const transcript = await AI.transcribe(blob);
+
+    // Meta-experimental prompt, deliberately hedged: the facial-expression
+    // label is presented to the model as an uncertain cue, not a fact, and
+    // the model is asked for tentative readings plus an explicit
+    // acknowledgment of uncertainty — rather than treating the label as
+    // ground truth the way a simple "[Detected emotion: X]" tag would.
+    const metaPrompt =
+      `In this experiment, the subject appeared ${gesture} at the end of ` +
+      `this snippet of this conversation: ${transcript}. ` +
+      `The observed facial-expression label is an uncertain ` +
+      `visual cue and may not reflect the person's internal ` +
+      `emotional state. Based on the transcript, provide at ` +
+      `most three tentative interpretations, one neutral ` +
+      `clarifying question, and one optional conversational ` +
+      `response. Explicitly acknowledge uncertainty.`;
+
+    // Control side stays a bare, unadorned transcript — no emotion tag, no
+    // framing at all — since isolating the effect of adding ANY context is
+    // the whole point of this comparison, however elaborate the tagged
+    // prompt above becomes.
     const [chatReply, controlReply] = await Promise.all([
-      AI.chatSend(transcript, gesture),
+      AI.metaSend(metaPrompt),
       AI.controlSend(transcript),
     ]);
 
