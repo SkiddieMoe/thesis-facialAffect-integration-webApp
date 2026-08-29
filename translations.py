@@ -50,6 +50,7 @@ TRANSLATIONS = {
         "transcribing": "Transcribing…", "transcript_label": "Transcript:", "btn_close": "Close",
         "camera_alert": "Camera access is required for Listener Mode.",
         "toast_debug_unlocked": "Debug tools unlocked — see Chat's debug section and Settings.",
+        "ai_disclaimer": "AI can make mistakes. Don't treat its responses as a reliable primary source.",
         "emotions": {
             "angry": "Angry", "contempt": "Contempt", "disgust": "Disgust", "fear": "Fear",
             "happy": "Happy", "neutral": "Neutral", "sad": "Sad", "surprise": "Surprise",
@@ -106,6 +107,7 @@ TRANSLATIONS = {
         "transcribing": "Transcribiendo…", "transcript_label": "Transcripción:", "btn_close": "Cerrar",
         "camera_alert": "Se requiere acceso a la cámara para el Modo Oyente.",
         "toast_debug_unlocked": "Herramientas de depuración desbloqueadas — mira la sección de depuración del Chat y Configuración.",
+        "ai_disclaimer": "La IA puede cometer errores. No trates sus respuestas como una fuente primaria fiable.",
         "emotions": {
             "angry": "Enojado", "contempt": "Desprecio", "disgust": "Asco", "fear": "Miedo",
             "happy": "Feliz", "neutral": "Neutral", "sad": "Triste", "surprise": "Sorpresa",
